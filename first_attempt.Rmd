@@ -1,0 +1,218 @@
+---
+title: "DP for Alignment"
+author: "DKS"
+date: "1/19/2018"
+output: html_document
+---
+
+#Generate DP Matrix
+```{r}
+
+seq1<-c("G","A","A","T","C")
+
+#seq2<-c("C","A","T","A","C")
+seq2<-c("A","A","T","T","C")
+
+
+sub.mat<-matrix(c(10,-5,0,-5,-5,10,-5,0,0,-5,10,-5,-5,0,-10,10),nrow=4)
+row.names(sub.mat)<-c("A","C","G","T")
+colnames(sub.mat)<-c("A","C","G","T")
+
+gp<-4*-1
+
+align.mat<-matrix(rep(NA,(length(seq1)+1)*(length(seq2)+1)) ,nrow=max(c(length(seq1),length(seq2)))+1)
+
+row.names(align.mat)<-c("",seq1)
+colnames(align.mat)<-c("",seq2)
+
+align.mat[1,1:nrow(align.mat)]<-gp*seq(0,5,1)
+
+align.mat[1:ncol(align.mat),1]<-gp*seq(0,5,1)
+
+best.moves.dir.list<-vector(mode="character",length=length(seq1)*length(seq2)) ###### NEED TO MAKE ACCURATE for diff lenghts####
+
+best.moves.val.list<-vector(mode="numeric",length=length(seq1)*length(seq2))
+
+## building matrix
+count<-0
+
+for (i in 2:nrow(align.mat)) {
+
+  
+  for (j in 2:ncol(align.mat)) {
+      count<-count+1
+      #print(count)
+     
+      if(colnames(align.mat)[i]==row.names(align.mat)[j] ) {
+       
+       diag<-10
+    
+        } else { if (colnames(align.mat)[i]=="A" & row.names(align.mat)[j]=="C" ||  colnames(align.mat)[i]=="A" & row.names(align.mat)[j]=="T" || colnames(align.mat)[i]=="C" & row.names(align.mat)[j]=="A" ||  colnames(align.mat)[i]=="C" & row.names(align.mat)[j]=="G" ||  colnames(align.mat)[i]=="G" & row.names(align.mat)[j]=="C" ||  colnames(align.mat)[i]=="G" & row.names(align.mat)[j]=="T" ||  colnames(align.mat)[i]=="T" & row.names(align.mat)[j]=="A" ||  colnames(align.mat)[i]=="T" & row.names(align.mat)[j]=="G" )  {
+        
+          diag<-5*-1
+       
+          } else {diag=0}
+        
+     }
+      
+      moves<-c(align.mat[i-1,j-1]+diag, align.mat[i-1,j]+gp, align.mat[i,j-1]+gp)  
+  
+      best.move<-max(moves)
+      
+
+       
+      align.mat[i,j]<-best.move
+      best.moves.val.list[count]<-best.move
+       
+      #print(best.move)
+       
+       best.move.index<-which(moves==best.move)
+       
+       if (length(best.move.index)>1) { 
+         best.move.index<-best.move.index[1]
+         #best.move.index<-best.move.index[2]
+         print(paste0("tie on move into space ",i,",",j))
+       }
+       
+       
+       
+       if (best.move.index == 1) {
+        
+        best.moves.dir.list[count]<-"diag"
+        
+        } else {
+                          
+       if(best.move.index == 2) {best.moves.dir.list[count]<-"vert"}  else {
+                            best.moves.dir.list[count]<-"horiz"} }
+                                                              
+     
+  
+  
+  }
+
+}
+
+best.moves.val.list
+align.mat
+count
+align.mat.trace<-matrix(best.moves.dir.list,nrow=length(seq1),byrow=T)
+align.mat.trace
+
+```
+
+#Traceback
+```{r}
+
+# Tracback 3rd attempt
+
+
+colnames(align.mat.trace)<-seq1
+rownames(align.mat.trace)<-seq2
+
+
+seq1.alignment<-rep("x",length=max(length(seq1),length(seq2))+1)
+seq2.alignment<-rep("x",length=max(length(seq1),length(seq2))+1)
+
+seq.remain <-length(grep("x",seq1.alignment))
+
+i=nrow(align.mat.trace)
+j=ncol(align.mat.trace)
+
+count=6
+#seq2.alignment[count]<-rownames(align.mat.trace)[i]
+#seq1.alignment[count]<-colnames(align.mat.trace)[j]
+
+seq2.alignment[count]<-rownames(align.mat.trace)[i]
+  seq1.alignment[count]<-colnames(align.mat.trace)[j]
+
+while (seq.remain>0 ) {
+  
+  if (i==0 & j==0) {break}
+  
+  if(i==0 | j==0) {
+   
+    if(i==0) {
+    seq2.alignment[count]<-"_"
+    seq1.alignment[count]<-colnames(align.mat.trace)[j]
+    
+    print(seq1.alignment,quote=F)
+    print(seq2.alignment,quote=F)
+    
+    break}
+    
+    if(j==0) {seq2.alignment[count]<-rownames(align.mat.trace)[i]
+    seq1.alignment[count]<-"_"
+    print(seq1.alignment,quote=F)
+    print(seq2.alignment,quote=F)
+    
+    break}
+  
+    }
+  seq.remain <-length(grep("x",seq1.alignment))
+  
+  print(c(i,j))
+  print(align.mat.trace[i,j])
+  
+  if (align.mat.trace[i,j]=="diag") {
+    
+    
+    
+    seq2.alignment[count]<-rownames(align.mat.trace)[i]
+    seq1.alignment[count]<-colnames(align.mat.trace)[j]
+
+    print(seq1.alignment,quote=F)
+    print(seq2.alignment,quote=F)
+    
+    i=i-1
+    j=j-1
+    
+    print(c(i,j))
+    } else {
+      
+      if(align.mat.trace[i,j]=="vert"){
+      
+  
+       
+      seq2.alignment[count]<-rownames(align.mat.trace)[i]
+      seq1.alignment[count]<-"_"
+    
+      print(seq1.alignment,quote=F)
+    print(seq2.alignment,quote=F)
+    
+    i=i-1
+
+       print(c(i,j))
+    }else{
+      
+      
+      
+      
+      seq2.alignment[count]<-"_"
+      seq1.alignment[count]<-colnames(align.mat.trace)[j]
+      
+      print(seq1.alignment,quote=F)
+    print(seq2.alignment,quote=F)
+      
+      j=j-1
+      print(c(i,j))
+    }
+      }
+  
+  
+  
+  
+  
+   count=count-1
+   print(count)}
+ 
+seqs.aligned<-rbind(seq1.alignment,seq2.alignment)
+row.names(seqs.aligned)<-c("seq1","seq2")
+print(seqs.aligned,quote = F)
+ 
+ 
+
+
+
+
+```
+
